@@ -291,7 +291,7 @@ export default function Show() {
 
     useEffect(() => {
         const checkStatus = async () => {
-            const res = await fetch(`${WebUrl}/api/checkApplicationStatus/${user.Emp_ID}`);
+            const res = await fetch(`${WebUrl}/api/check-sla-status/${user.Emp_ID}`);
             const data = await res.json();
             setHasSubmitted(data.hasSubmitted);
             setApplicationStatus(data.status);
@@ -711,14 +711,14 @@ export default function Show() {
         }
 
         setConfirmTitle("Submit Form?");
-        setConfirmDescription("Do you want to submit this form?");
+        setConfirmDescription("Are you sure? Take a moment to review your details – once submitted, you won’t be able to edit them.");
         setConfirmOpen(true);
     };
 
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="SLA" />
+            <Head title="SLA Form" />
             <Toaster position="top-right" />
             {loading ? (
                 <div className="space-y-4 p-8">
@@ -1395,7 +1395,7 @@ export default function Show() {
                                                             <FormItem>
                                                                 <FormLabel>Branch</FormLabel>
                                                                 <FormControl>
-                                                                    <Input {...field} placeholder="Enter Branch" maxLength={100} />
+                                                                    <Input {...field} placeholder="Enter Branch" maxLength={100} readOnly />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>

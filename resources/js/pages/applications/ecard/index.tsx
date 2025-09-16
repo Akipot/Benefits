@@ -47,7 +47,8 @@ import {
     FileText,
     TrendingUp,
     TrendingDown,
-    Minus
+    Minus,
+    ArrowBigDownDash
 } from 'lucide-react';
 import {
     Select,
@@ -62,6 +63,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PDFDocument } from "pdf-lib";
 
+import Pagination from "@/components/others/pagination";
+import { View } from "@/components/dialogs/view-pdf";
 
 const breadcrumbs: BreadcrumbItemType[] = [
     {
@@ -70,40 +73,43 @@ const breadcrumbs: BreadcrumbItemType[] = [
     },
 ];
 
-interface Contracts {
-    Contract_ID: number;
-    DocumentName: string;
+interface ECard {
+    Application_ID: number;
+    Status: string;
+    EmployeeNo: string;
+    FullName: string;
+    Company: string;
+    Branch: string;
+    InsertDate: string;
     FileName: string;
-    DocumentType: string;
-    Status: number | string;
-    InsertBy: string;
-    InsertedDate: string;
+    FilePath: string;
+    CutoffFrom: string;
+    CutoffTo: string;
 }
+
 
 export default function Dashboard() {
     /**--------------------------------User Info -------------------------------*/
     const { auth } = usePage().props;
     const { user } = auth as { user: User; location: Location };
 
-    const [data, setData] = useState<Contracts[]>([]);
+    const [data, setData] = useState<ECard[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = React.useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [isLoading, setIsLoading] = useState(false);
 
     // const WebUrl = import.meta.env.VITE_WEBURL;
     const WebUrl = "";
 
-    /**-------------------------- Fetch Ecard Applications --------------------------*/
+    /**-------------------------- Fetch ECard Applications --------------------------*/
     useEffect(() => {
-        axios.get(`${WebUrl}/api/contract-of-lease`)
+        axios.get(`${WebUrl}/api/get-ecard-applications`)
             .then(res => {
                 setData(res.data);
             })
             .catch(err => {
-                console.error('Failed to fetch incident classifications:', err);
-                toast.error('Failed to load incident classifications');
+                console.error('Failed to fetch ECard Applications:', err);
+                toast.error('Failed to load ECard applications. Try again later.');
             })
             .finally(() => {
                 setLoading(false);
@@ -120,15 +126,18 @@ export default function Dashboard() {
         const search = searchTerm.toLowerCase();
 
         return (
-            item.DocumentName.toLowerCase().includes(search) ||
-            item.DocumentType.toLowerCase().includes(search) ||
+            item.EmployeeNo.toLowerCase().includes(search) ||
+            item.FullName.toLowerCase().includes(search) ||
             (Number(item.Status) === 1 ? 'Completed' : 'Ongoing').includes(search) ||
-            (item.InsertBy || '').toLowerCase().includes(search) ||
-            (item.InsertedDate || '').toLowerCase().includes(search)
+            (item.InsertDate || '').toLowerCase().includes(search) ||
+            (item.Company || '').toLowerCase().includes(search) ||
+            (item.Branch || '').toLowerCase().includes(search)
         );
     });
 
     /**--------------------------- Pagination ----------------------------*/
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);
     const startIndex = (currentPage - 1) * rowsPerPage;
     const currentRows = filteredData.slice(startIndex, startIndex + rowsPerPage);
@@ -145,11 +154,104 @@ export default function Dashboard() {
         }
     }, [isLoading]);
 
+    /** ----------------------------- Selection ------------------------ */
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+    const allSelected = currentRows.every(item =>
+        selectedIds.includes(item.Application_ID)
+    );
+    const someSelected =
+        currentRows.some(item => selectedIds.includes(item.Application_ID)) &&
+        !allSelected;
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            const newSelected = [
+                ...new Set([...selectedIds, ...currentRows.map(item => item.Application_ID)])
+            ];
+            setSelectedIds(newSelected);
+            // console.log("Selected after select all:", newSelected);
+        } else {
+            const newSelected = selectedIds.filter(
+                id => !currentRows.some(item => item.Application_ID === id)
+            );
+            setSelectedIds(newSelected);
+            // console.log("Selected after deselect all:", newSelected);
+        }
+    };
+
+    const handleCheckboxChange = (id: number, checked: boolean) => {
+        setSelectedIds(prev => {
+            const updated = checked ? [...prev, id] : prev.filter(i => i !== id);
+            console.log("Selected Application IDs:", updated);
+            return updated;
+        });
+    };
+
+    useEffect(() => {
+        // console.log("Selected Application IDs updated:", selectedIds);
+    }, [selectedIds]);
+
+    /** -------------------------- Generate / Download PDF -------------------- */
+    const handleDownloadSelected = async () => {
+        if (selectedIds.length === 0) return;
+
+        const selectedFiles = data.filter(d => selectedIds.includes(d.Application_ID));
+
+        if (selectedFiles.length === 0) return;
+
+        const cutoffFromDates = selectedFiles.map(f => f.CutoffFrom);
+        const cutoffToDates = selectedFiles.map(f => f.CutoffTo);
+
+        const From = cutoffFromDates.reduce((min, d) => (d < min ? d : min), cutoffFromDates[0]);
+        const To = cutoffToDates.reduce((max, d) => (d > max ? d : max), cutoffToDates[0]);
+
+        const zipName = `ECARD_${From}_To_${To}.zip`;
+
+        const idsParam = selectedIds.join(',');
+        const url = `${WebUrl}/api/download-ecard-zip?ids=${idsParam}`;
+
+        try {
+            const response = await axios.get(url, {
+                responseType: 'blob',
+                withCredentials: true
+            });
+
+            const blob = new Blob([response.data], { type: 'application/zip' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = zipName; // use frontend-calculated name
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.location.reload();
+        } catch (error) {
+            console.error('Download failed', error);
+        }
+    };
+
+
+    /** ----------------------------- View Application  ------------------------ */
+    const [viewTitle, setViewTitle] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
+    const [viewOpen, setViewOpen] = useState(false);
+    const [selectedSLA, setSelectedSLA] = useState<ECard | null>(null)
+    const [viewLink, setViewLink] = useState("");
+
+    const handleViewApplication = async (item: ECard) => {
+        setViewTitle(`ECARD APPLICATION FORM - ${item.FullName} (${item.EmployeeNo})`)
+        setSelectedSLA(item);
+        const pdfLink = `${WebUrl}/storage/${item.FilePath}/${item.FileName}`;
+        setViewLink(pdfLink);
+        setViewOpen(true);
+    };
+
+
 
     /**-------------------------- Page Layout ----------------------*/
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="ECARD Form" />
+            <Head title="E-Card Applications" />
             <Toaster position="top-right" />
             {isLoading ? (
                 <div className="space-y-4 p-8">
@@ -216,7 +318,7 @@ export default function Dashboard() {
                                     <BreadcrumbItem>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <BreadcrumbPage className="text-[0.75rem]">{user.info?.Location}</BreadcrumbPage>
+                                                <BreadcrumbPage className="text-[0.75rem]">{user.info?.location?.Location}</BreadcrumbPage>
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>Location</p>
@@ -227,103 +329,191 @@ export default function Dashboard() {
                             </Breadcrumb>
                         </div>
                     </div>
-                    <div className="overflow-x-auto rounded-md shadow-sm text-xs">
-                        {loading ? (
-                            <div className="flex justify-center items-center py-10">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                                <span className="ml-3 text-gray-600 text-sm">Fetching data...</span>
+
+                    <div className="px-4 md:px-8 lg:px-6 py-4">
+                        <div className="mb-4 flex items-center justify-between">
+
+                            {/* Search input */}
+                            <div className="relative w-72 max-w-full">
+                                <Input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchTerm}
+                                    onChange={handleSearchChange}
+                                    className="w-full rounded border border-gray-300 px-3 py-2 pr-10 text-xs"
+                                />
+                                <Search
+                                    className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
+                                />
                             </div>
-                        ) : (
-                            <table className="w-full table-auto border-collapse">
-                                <thead>
-                                    <tr className="bg-gray-100 dark:bg-gray-700">
-                                        <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-600">ID</th>
-                                        <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Document</th>
-                                        <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Uploaded</th>
-                                        <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-600">Encode Status</th>
-                                        <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-600">Actions</th>
-                                    </tr>
-                                </thead>
 
-                                <tbody>
-                                    {currentRows.length > 0 ? (
-                                        currentRows.map((item, idx) => (
-                                            <tr
-                                                key={startIndex + idx}
-                                                // onClick={() => handleRowClick(item)}
-                                                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 border-b border-gray-200"
-                                            >
-                                                <td className="px-4 py-2 text-center font-bold text-gray-800 dark:text-gray-200">
-                                                    {item.Contract_ID}
-                                                </td>
-                                                <td className="px-4 py-2 text-left">
-                                                    <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
-                                                        <File className="w-5 h-5 flex-shrink-0" />
-                                                        <div className="flex flex-col items-start">
-                                                            <span className="font-bold text-sm leading-tight">{item.DocumentName}</span>
-                                                            <span className="text-xs text-gray-600 dark:text-gray-400">{item.DocumentType}</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2 text-left">
-                                                    <div className="flex flex-col items-start">
-                                                        <span className="font-bold text-sm leading-tight">
-                                                            {new Date(item.InsertedDate).toLocaleDateString('en-US', {
-                                                                month: 'short',
-                                                                day: 'numeric',
-                                                                year: 'numeric',
-                                                            })}
-                                                        </span>
-                                                        <span className="text-xs text-gray-600 dark:text-gray-400">by {item.InsertBy}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <span
-                                                        className={`inline-block rounded-full px-2 py-0.5 font-semibold ${Number(item.Status) === 1
-                                                            ? 'bg-blue-600 text-white dark:bg-blue-500 dark:text-white'
-                                                            : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                                            }`}
-                                                    >
-                                                        {Number(item.Status) === 1 ? 'Complete' : 'Ongoing'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 text-center space-x-2">
-                                                    <button
-                                                        className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer dark:text-gray-300"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
+                            {selectedIds.length > 0 && (
+                                <Button
+                                    className="
+                                        ml-4 flex items-center gap-1 rounded border border-yellow-500 bg-yellow-500 px-3 py-2 text-xs text-black font-bold
+                                        hover:bg-yellow-600 cursor-pointer
+                                        dark:border-yellow-400 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500
+                                    "
+                                    onClick={handleDownloadSelected}
 
+
+                                >
+                                    <ArrowBigDownDash className="h-3 w-3" />
+                                    Generate Form
+                                </Button>
+                            )}
+
+                        </div>
+
+                        <div className="overflow-x-auto rounded-md shadow-sm text-xs">
+
+
+                            {loading ? (
+                                <div className="flex flex-col justify-center items-center py-10">
+                                    <div className="flex space-x-1 mb-2">
+                                        <span className="w-2 h-2 bg-red-500 rounded-full animate-fade"></span>
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-fade animation-delay-200"></span>
+                                        <span className="w-2 h-2 bg-yellow-500 rounded-full animate-fade animation-delay-400"></span>
+                                    </div>
+                                    <span className="text-gray-400 text-xs">Hang tight, loading data…</span>
+                                </div>
+
+                            ) : (
+                                <div className="overflow-x-auto scrollbar">
+                                    <table className="w-full table-auto border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-100 dark:bg-gray-700">
+                                                <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-600">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="cursor-pointer"
+                                                        checked={allSelected}
+                                                        ref={el => {
+                                                            if (el) el.indeterminate = someSelected;
                                                         }}
-                                                        title="Preview Uploaded PDF"
-                                                    >
-                                                        <Eye className="w-5 h-5" />
-                                                    </button>
-                                                    <button
-                                                        className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer dark:text-gray-300"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
+                                                        onChange={e => handleSelectAll(e.target.checked)}
+                                                        onClick={e => e.stopPropagation()}
+                                                    />
 
-                                                        }}
-                                                        title="Download PDF"
-                                                    >
-                                                        <Download className="w-5 h-5" />
-                                                    </button>
-                                                </td>
+
+                                                </th>
+                                                <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-600">#</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Status</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Employee</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Cutoff Period</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Date Submitted</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Company</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Branch</th>
+                                                <th className="px-4 py-2 text-left border-b border-gray-300 dark:border-gray-600">Application Form</th>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={5} className="px-4 py-2 text-center text-gray-500 border-b border-gray-200">
-                                                No data available
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
+                                        </thead>
+                                        <tbody>
+                                            {currentRows.length > 0 ? (
+                                                currentRows.map((item, idx) => (
+                                                    <tr
+                                                        onClick={() => handleViewApplication(item)}
+                                                        key={item.Application_ID}
+                                                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 border-b border-gray-200"
+                                                    >
+                                                        <td className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-600">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedIds.includes(item.Application_ID)}
+                                                                onChange={e =>
+                                                                    handleCheckboxChange(item.Application_ID, e.target.checked)
+                                                                }
+                                                                onClick={e => e.stopPropagation()}
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center font-bold text-gray-800 dark:text-gray-200">{startIndex + idx + 1}</td>
+                                                        <td className="px-4 py-2 text-left">
+                                                            <span
+                                                                className={`px-2 py-1 rounded text-xs font-bold ${item.Status === "Generated"
+                                                                    ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100"
+                                                                    : "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-100"
+                                                                    }`}
+                                                            >
+                                                                {item.Status}
+                                                            </span>
+                                                        </td>
 
-                            </table>
-                        )}
+
+                                                        <td className="px-4 py-2 text-left">
+                                                            <div className="flex items-left gap-4 text-gray-800 dark:text-gray-200">
+                                                                <div className="flex flex-col items-start">
+                                                                    <span className="font-bold text-sm leading-tight">{item.EmployeeNo}</span>
+                                                                    <span className="text-xs text-gray-600 dark:text-gray-400">{item.FullName}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-left">
+                                                            <div className="flex items-left gap-4 text-gray-800 dark:text-gray-200">
+                                                                <div className="flex flex-col items-start">
+                                                                    <span className="font-bold text-sm leading-tight">
+                                                                        {new Date(item.CutoffFrom).toLocaleDateString('en-US', {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            year: 'numeric',
+                                                                        })} to
+                                                                    </span>
+                                                                    <span className="font-bold text-sm leading-tight">
+                                                                        {new Date(item.CutoffTo).toLocaleDateString('en-US', {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            year: 'numeric',
+                                                                        })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+
+
+                                                        </td>
+                                                        <td className="px-4 py-2 text-left">
+                                                            <span className="font-bold text-sm leading-tight">
+                                                                {new Date(item.InsertDate).toLocaleDateString('en-US', {
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    year: 'numeric',
+                                                                })}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-left font-bold text-gray-800 dark:text-gray-200">{item.Company}</td>
+                                                        <td className="px-4 py-2 text-left font-bold text-gray-800 dark:text-gray-200">{item.Branch}</td>
+                                                        <td className="px-4 py-2 text-left font-bold text-gray-800 dark:text-gray-200">{item.FileName}</td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={9} className="px-4 py-2 text-center text-gray-500 border-b border-gray-200">
+                                                        No data available
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                            )}
+                        </div>
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            rowsPerPage={rowsPerPage}
+                            setCurrentPage={setCurrentPage}
+                            setRowsPerPage={setRowsPerPage}
+                        />
+
+
+                        <View
+                            open={viewOpen}
+                            title={viewTitle}
+                            onCancel={() => setViewOpen(false)}
+                            link={viewLink}
+                        />
+
                     </div>
-
                 </>
             )
             }

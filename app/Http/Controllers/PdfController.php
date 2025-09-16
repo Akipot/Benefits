@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\SLAService;
+use App\Services\ECardService;
 
 use setasign\Fpdi\Fpdi;
 
@@ -198,9 +199,30 @@ class PdfController extends Controller
 
     public function generateEcard(Request $request)
     {
+        $ecardService = new ECardService();
+
+        $insert = $ecardService->insertApplication($request);
+
+        if (!$insert['success']) {
+            Log::error('ECard insert failed', [
+                'message' => $insert['msg'],
+                'request' => $request->all(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'num' => $insert['num'],
+                'message' => $insert['msg']
+            ], 500);
+        }
+
         $pdf = new Fpdi();
         $today = now()->format('m/d/Y');
         $fullName = MyHelper::decrypt(Session::get('FullName'));
+
+        $pmsignature = Common::getPMSignature();
+
+        Log::info($pmsignature);
 
         // ECARD FORM
         $ecard = storage_path('app/public/forms/ECARD_MEMBERSHIP_FORM.pdf');
@@ -225,7 +247,7 @@ class PdfController extends Controller
                     [21, 64, $request->input('position')],
                     [95, 64, $request->input('branch')],
                     [165, 64, $request->input('branchCode')],
-                    [31, 146, $fullName],
+                    [36, 146, $fullName],
                     [143, 206, $fullName],
                     [143, 240, $fullName],
                     [31, 224, $fullName],
@@ -254,6 +276,32 @@ class PdfController extends Controller
 
                     unlink($tmpFile);
                 }
+
+                if (!empty($pmsignature[0]->SignatureImage)) {
+                    $signatureDataUrl2 = $pmsignature[0]->SignatureImage;
+                    $signatureBase64_2 = preg_replace('#^data:image/\w+;base64,#i', '', $signatureDataUrl2);
+                    $signatureData_2 = base64_decode($signatureBase64_2);
+
+                    if ($signatureData_2 !== false) {
+                        // Create image from string
+                        $img = imagecreatefromstring($signatureData_2);
+
+                        // Make white (or nearly white) color transparent
+                        $white = imagecolorallocate($img, 255, 255, 255);
+                        imagecolortransparent($img, $white);
+
+                        // Save to temp file
+                        $tmpFile2 = tempnam(sys_get_temp_dir(), 'sig2') . '.png';
+                        imagepng($img, $tmpFile2);
+                        imagedestroy($img);
+
+                        $pdf->Image($tmpFile2, 130, 107, 60, 12); // adjust x, y, width, height
+                        unlink($tmpFile2);
+                    } else {
+                        Log::error('Failed to decode signature from database.');
+                    }
+                }
+
             }
         }
 
@@ -412,6 +460,7 @@ class PdfController extends Controller
 
                     unlink($tmpFile);
                 }
+
             }
 
             if ($pageNo === 2) {
@@ -447,9 +496,28 @@ class PdfController extends Controller
             }
         }
 
-        return response($pdf->Output('S'), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="filled.pdf"',
+        $today = date('Y-m-d');
+
+        $Cutoff = Common::getCutoff([0, $today]);
+
+        $CutFrom = date('Y-m-d', strtotime($Cutoff[0]->CutoffFrom));
+        $CutTo   = date('Y-m-d', strtotime($Cutoff[0]->CutoffTo));
+
+        $storagePath = storage_path("app/public/ApplicationForms/ECard/{$CutFrom}_To_{$CutTo}");
+
+        if (!file_exists($storagePath)) {
+            mkdir($storagePath, 0777, true);        }
+
+        $fileName = $request->input('employeeNo') . '_ECard_Form.pdf';
+        $filePath = $storagePath . '/' . $fileName;
+
+        $pdf->Output('F', $filePath);
+    
+        return response()->json([
+            'success' => true,
+            'num' => $insert['num'],
+            'message' => $insert['msg'],
+            'filePath' => asset("storage/ApplicationForms/ECard/{$CutFrom}_To_{$CutTo}/$fileName")
         ]);
     }
 

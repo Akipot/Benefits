@@ -207,7 +207,7 @@ export default function Dashboard() {
         const From = cutoffFromDates.reduce((min, d) => (d < min ? d : min), cutoffFromDates[0]);
         const To = cutoffToDates.reduce((max, d) => (d > max ? d : max), cutoffToDates[0]);
 
-        const zipName = `${From}_To_${To}.zip`;
+        const zipName = `SLA_${From}_To_${To}.zip`;
 
         const idsParam = selectedIds.join(',');
         const url = `${WebUrl}/api/download-sla-zip?ids=${idsParam}`;
@@ -240,7 +240,7 @@ export default function Dashboard() {
 
 
     const handleViewApplication = async (item: SLA) => {
-        setViewTitle(`APPLICATION FORM - ${item.FullName} (${item.EmployeeNo})`)
+        setViewTitle(`SLA APPLICATION FORM - ${item.FullName} (${item.EmployeeNo})`)
         setSelectedSLA(item);
         const pdfLink = `${WebUrl}/storage/${item.FilePath}/${item.FileName}`;
         setViewLink(pdfLink);

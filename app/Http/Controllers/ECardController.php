@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Contracts;
 use App\Models\Common;
-use App\Models\SLA;
+use App\Models\ECard;
 use App\Helpers\MyHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -17,15 +17,15 @@ use Response;
 
 use Illuminate\Support\Facades\DB;
 
-class SLAController extends Controller
+class ECardController extends Controller
 {
-    public function getApplicationSLA()
+    public function getApplicationECard()
     {
         $param = [
             0
         ];
 
-        $data = SLA::getApplicationSLA($param);
+        $data = ECard::getApplicationECard($param);
 
         return response()->json($data);
     }
@@ -34,7 +34,7 @@ class SLAController extends Controller
     public function checkApplicationStatus($id)
     {
         $param = [0, $id];
-        $data = SLA::getApplicationSLA($param); 
+        $data = ECard::getApplicationECard($param); 
 
         if ($data) {
             return response()->json([
@@ -69,7 +69,7 @@ class SLAController extends Controller
             $idsParam
         ];
 
-        $files = SLA::generateSLA($param);
+        $files = ECard::generateECard($param);
 
         if (empty($files)) {
             return response()->json(['error' => 'No files found'], 404);
@@ -78,14 +78,14 @@ class SLAController extends Controller
         $From = $files[0]->CutoffFrom;
         $To = $files[0]->CutoffTo;
         $zipName = $From . '_To_' . $To . '.zip';
-        $zipPath = storage_path($zipName);
+        $zipPath = storage_path('ECARD_' . $zipName);
 
         $zip = new ZipArchive;
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
             foreach ($files as $file) {
                 $filepath = $file->CutoffFrom . '_To_' . $file->CutoffTo;
                 $filename = $file->FileName;
-                $fullPath = storage_path("app/public/ApplicationForms/SLA/{$filepath}/{$filename}");
+                $fullPath = storage_path("app/public/ApplicationForms/ECard/{$filepath}/{$filename}");
 
                 if (file_exists($fullPath)) {
                     $zip->addFile($fullPath, $filename);

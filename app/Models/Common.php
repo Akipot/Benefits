@@ -49,4 +49,11 @@ class Common extends Model
         $result = DB::select('[sp_Cutoff_Get] ' . MyHelper::generateQM($data), $data);
         return $result;
     }
+
+    public static function getPMSignature()
+    {
+        $result = DB::select('[sp_PMSignature_Get] ');
+        return $result;
+    }
+
 }

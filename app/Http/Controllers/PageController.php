@@ -21,7 +21,6 @@ class PageController extends Controller
             $Employee_ID
         ];
 
-
         $profile = Profile::getProfileCompletion($param);
 
         if($profile){
@@ -62,15 +61,25 @@ class PageController extends Controller
     }
 
     /** ------------------ Applications > SLA --------------- */
-    public function slaApplications()
+    public function slaApplications(Request $request)
     {
+        // Check team_ID
+        if ($request->user()->info->team_ID !== "9") {
+            abort(403, 'Access denied.');
+            //return redirect()->route('home')->with('error', 'Access denied.');
+        }
+
         return Inertia::render('applications/sla/index');
     }
+
     /** ------------------ Applications > ECard --------------- */
-    public function ecardApplications()
+    public function ecardApplications(Request $request)
     {
+        if ($request->user()->info->team_ID !== "9") {
+            abort(403, 'Access denied.');
+        }
+
         return Inertia::render('applications/ecard/index');
     }
-
 
 }

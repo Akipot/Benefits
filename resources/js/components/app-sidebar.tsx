@@ -55,11 +55,11 @@ const mainNavItems: NavItem[] = [
             { title: 'E-Card Application', icon: IdCard, href: `${WebUrl}/applications/ecard` },
         ],
     },
-    {
-        title: 'Maintenance',
-        icon: Settings2,
-        children: [{ title: 'HR Manager', icon: UserRoundCheck, href: `${WebUrl}/forms/sla` }],
-    },
+    // {
+    //     title: 'Maintenance',
+    //     icon: Settings2,
+    //     children: [{ title: 'HR Manager', icon: UserRoundCheck, href: `${WebUrl}/forms/sla` }],
+    // },
 ];
 
 function useResponsiveCollapsed() {
@@ -119,18 +119,40 @@ export function AppSidebar() {
     };
 
     /** ----------------------- Inject onClick ---------------------- */
-    const filteredNavItems = mainNavItems.map((item) => {
-        if (item.title === 'HR Forms' && item.children) {
-            return {
-                ...item,
-                children: item.children.map((child) => ({
-                    ...child,
-                    onClick: (e: any) => handleProtectedClick(e, child.href),
-                })),
-            };
-        }
-        return item;
-    });
+    // const filteredNavItems = mainNavItems.map((item) => {
+    //     if (item.title === 'HR Forms' && item.children) {
+    //         return {
+    //             ...item,
+    //             children: item.children.map((child) => ({
+    //                 ...child,
+    //                 onClick: (e: any) => handleProtectedClick(e, child.href),
+    //             })),
+    //         };
+    //     }
+    //     return item;
+    // });
+
+    const filteredNavItems = mainNavItems
+        // Hide "Applications" and "Maintenance" for team_ID === "9"
+        .filter((item) => {
+            if (user.info?.team_ID !== "9") {
+                return item.title !== "Applications";
+            }
+            return true;
+        })
+        // Inject onClick for HR Forms
+        .map((item) => {
+            if (item.title === "HR Forms" && item.children) {
+                return {
+                    ...item,
+                    children: item.children.map((child) => ({
+                        ...child,
+                        onClick: (e: any) => handleProtectedClick(e, child.href),
+                    })),
+                };
+            }
+            return item;
+        });
 
     return (
         <>

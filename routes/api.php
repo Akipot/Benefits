@@ -3,6 +3,7 @@
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SLAController;
+use App\Http\Controllers\ECardController;
 use App\Http\Controllers\CommonController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -30,7 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
         /** --------------------------- Get SLA ---------------------------------- */
         Route::get('/get-sla-applications', [SLAController::class, 'getApplicationSLA']);
         Route::get('/download-sla-zip', [SLAController::class, 'downloadZip']);
-        Route::get('/checkApplicationStatus/{id}', [SLAController::class, 'checkApplicationStatus']);
+        Route::get('/check-sla-status/{id}', [SLAController::class, 'checkApplicationStatus']);
+
+        /** --------------------------- Get ECard ---------------------------------- */
+        Route::get('/get-ecard-applications', [ECardController::class, 'getApplicationECard']);
+        Route::get('/download-ecard-zip', [ECardController::class, 'downloadZip']);
+        Route::get('/check-ecard-status/{id}', [ECardController::class, 'checkApplicationStatus']);
 
     /** --------------------------- Generate SLA ---------------------------------- */
     Route::post('/generate-sla', [PdfController::class, 'generateSLA']);

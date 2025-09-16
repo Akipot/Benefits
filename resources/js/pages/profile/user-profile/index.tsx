@@ -83,6 +83,7 @@ export default function Profile() {
     const { auth } = usePage().props;
     const { user } = auth as { user: User; location: Location };
     const { employee } = usePage().props as any
+
     // console.log(employee);
     const breadcrumbs: BreadcrumbItemType[] = [
         {
@@ -204,13 +205,14 @@ export default function Profile() {
                         <div className="w-full flex flex-wrap gap-4 px-0 py-1">
                             {/* Personal Information Card */}
                             <Card className="flex-1 min-w-[300px] p-4 mb-2">
+
                                 <ProfileCard
                                     fullName={employee.FullName}
                                     position={employee.Position}
                                     department={employee.Department}
                                     email={employee.Email}
-                                    mobileNumber={employee.MobileNumber}
-                                    province={employee.Province}
+                                    mobileNumber={user.info?.team_ID !== "9" ? "*********" : employee.MobileNumber}
+                                    province={user.info?.team_ID !== "9" ? "*********" : employee.Province}
                                     dateHired={employee.DateHired}
                                     employeeNumber={employee.EmployeeNo}
                                     avatar={employee.ProfilePicturePath || DefaultAvatar}
@@ -268,7 +270,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">First Name:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.FirstName ?? '-----'}
+                                                {employee.FirstName ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -276,7 +278,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Middle Name:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.MiddleName ?? '-----'}
+                                                {employee.MiddleName ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -284,7 +286,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Last Name:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.LastName ?? '-----'}
+                                                {employee.LastName ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -294,7 +296,7 @@ export default function Profile() {
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
                                                 {user.info?.Birthdate
                                                     ? format(parseISO(employee.Birthdate), 'MMMM dd, yyyy')
-                                                    : '-----'}
+                                                    : 'Not Available'}
                                             </span>
                                         </div>
 
@@ -302,7 +304,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Gender:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Gender ?? '-----'}
+                                                {employee.Gender ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -310,7 +312,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Marital Status:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.CivilStatus ?? '-----'}
+                                                {employee.CivilStatus ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -320,7 +322,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Emergency Contact:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.PersonICE ?? '-----'}
+                                                {employee.PersonICE ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -328,7 +330,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Emergency Phone:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.ContactNumberICE ?? '-----'}
+                                                {employee.ContactNumberICE ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -348,75 +350,38 @@ export default function Profile() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-
                                     <form className="space-y-3">
-                                        {/* Region */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Region:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Region ?? '-----'}
-                                            </span>
-                                        </div>
+                                        {(() => {
+                                            // Explicitly type the parameter to avoid 'any'
+                                            const mask = (value: string | undefined | null) =>
+                                                user.info?.team_ID !== "9" ? "*********" : value ?? "-----";
 
-                                        {/* Province */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Province:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Province ?? '-----'}
-                                            </span>
-                                        </div>
+                                            const fields = [
+                                                { label: "Region", value: employee.Region },
+                                                { label: "Province", value: employee.Province },
+                                                { label: "City", value: employee.Municipal },
+                                                { label: "Barangay", value: employee.Barangay },
+                                                { label: "House No.", value: employee.HouseNo },
+                                                { label: "Street", value: employee.Street },
+                                                { label: "Subdivision", value: employee.Subdivision },
+                                                { label: "Zip Code", value: employee.ZipCode },
+                                            ];
 
-                                        {/* City */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">City:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Municipal ?? '-----'}
-                                            </span>
-                                        </div>
-
-                                        {/* Barangay */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Barangay:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Barangay ?? '-----'}
-                                            </span>
-                                        </div>
-
-                                        {/* House Number */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">House No.:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.HouseNo ?? '-----'}
-                                            </span>
-                                        </div>
-
-                                        {/* Street */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Street:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Street ?? '-----'}
-                                            </span>
-                                        </div>
-
-                                        {/* Subdivision */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Subdivision:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Subdivision ?? '-----'}
-                                            </span>
-                                        </div>
-
-                                        {/* Zip Code */}
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Zip Code:</span>
-                                            <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.ZipCode ?? '-----'}
-                                            </span>
-                                        </div>
+                                            return fields.map((field) => (
+                                                <div key={field.label} className="flex justify-between">
+                                                    <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">
+                                                        {field.label}:
+                                                    </span>
+                                                    <span className="text-xs text-gray-900 dark:text-gray-100">
+                                                        {mask(field.value)}
+                                                    </span>
+                                                </div>
+                                            ));
+                                        })()}
                                     </form>
-
                                 </CardContent>
                             </Card>
+
 
                             {/* Employment Details Card */}
                             <Card className="flex-1 min-w-[300px] p-4 mb-2">
@@ -435,7 +400,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Division:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Division ?? '-----'}
+                                                {employee.Division ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -443,7 +408,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Department:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Department ?? '-----'}
+                                                {employee.Department ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -451,7 +416,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Section:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.Team ?? '-----'}
+                                                {employee.Team ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -461,7 +426,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Manager:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.SupName ?? '-----'}
+                                                {employee.SupName ?? 'Not Available'}
                                             </span>
                                         </div>
 
@@ -469,7 +434,7 @@ export default function Profile() {
                                         {/* <div className="flex justify-between">
                                                 <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Employment Type:</span>
                                                 <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                    {employee.EmployementType ?? '-----'}
+                                                    {employee.EmployementType ?? 'Not Available'}
                                                 </span>
                                             </div> */}
 
@@ -479,7 +444,7 @@ export default function Profile() {
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
                                                 {user.info?.Birthdate
                                                     ? format(parseISO(employee.DateHired), 'MMMM dd, yyyy')
-                                                    : '-----'}
+                                                    : 'Not Available'}
                                             </span>
                                         </div>
 
@@ -487,7 +452,7 @@ export default function Profile() {
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">Work Location:</span>
                                             <span className="text-xs text-gray-900 dark:text-gray-100">
-                                                {employee.LocationCode ?? '-----'} - {employee.Location ?? '-----'}
+                                                {employee.LocationCode ?? 'Not Available'} - {employee.Location ?? 'Not Available'}
                                             </span>
                                         </div>
                                     </form>
@@ -510,53 +475,48 @@ export default function Profile() {
                             </CardHeader>
 
                             <CardContent>
-
                                 <form className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {(() => {
+                                            // Mask helper
+                                            const mask = (value: string | undefined | null, placeholder: string) =>
+                                                user.info?.team_ID !== "9" ? "*********" : value ?? placeholder;
 
-                                        {/* TIN */}
-                                        <div className="p-3 rounded-lg bg-gradient-to-r from-white to-red-100 dark:from-gray-800 dark:to-red-900 text-xs shadow-sm flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
-                                            <div className="flex items-center gap-1 w-full sm:w-auto">
-                                                <img src={BIRIcon} alt="BIR" className="w-5 h-5" />
-                                                <span className="font-semibold">TIN</span>
-                                            </div>
-                                            <span className="font-semibold">{employee.TIN || "xxx-xxx-xxx"}</span>
-                                        </div>
+                                            const govIDs = [
+                                                { label: "TIN", value: employee.TIN, icon: BIRIcon, placeholder: "xxx-xxx-xxx" },
+                                                { label: "HDMF Number", value: employee.HDMF, icon: PagibigIcon, placeholder: "xxxx-xxxx-xxxx" },
+                                                { label: "SSS Number", value: employee.SSS, icon: SSSIcon, placeholder: "xx-xxxxxxx-x" },
+                                                { label: "Philhealth Number", value: employee.Philhealth, icon: PhilhealthIcon, placeholder: "xx-xxxxxxxxx-x" },
+                                            ];
 
-                                        {/* HDMF */}
-                                        <div className="p-3 rounded-lg bg-gradient-to-r from-white to-yellow-100 dark:from-gray-800 dark:to-yellow-900 text-xs shadow-sm flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
-                                            <div className="flex items-center gap-1 w-full sm:w-auto">
-                                                <img src={PagibigIcon} alt="HDMF" className="w-5 h-5" />
-                                                <span className="font-semibold">HDMF Number</span>
-                                            </div>
-                                            <span className="font-semibold">{employee.HDMF || "xxxx-xxxx-xxxx"}</span>
-                                        </div>
-
-                                        {/* SSS */}
-                                        <div className="p-3 rounded-lg bg-gradient-to-r from-white to-blue-100 dark:from-gray-800 dark:to-blue-900 text-xs shadow-sm flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
-                                            <div className="flex items-center gap-1 w-full sm:w-auto">
-                                                <img src={SSSIcon} alt="SSS" className="w-5 h-5" />
-                                                <span className="font-semibold">SSS Number</span>
-                                            </div>
-                                            <span className="font-semibold">{employee.SSS || "xx-xxxxxxx-x"}</span>
-                                        </div>
-
-                                        {/* Philhealth */}
-                                        <div className="p-3 rounded-lg bg-gradient-to-r from-white to-green-100 dark:from-gray-800 dark:to-green-900 text-xs shadow-sm flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
-                                            <div className="flex items-center gap-1 w-full sm:w-auto">
-                                                <img src={PhilhealthIcon} alt="Philhealth" className="w-5 h-5" />
-                                                <span className="font-semibold">Philhealth Number</span>
-                                            </div>
-                                            <span className="font-semibold">{employee.Philhealth || "xx-xxxxxxxxx-x"}</span>
-                                        </div>
-
+                                            return govIDs.map((id) => (
+                                                <div
+                                                    key={id.label}
+                                                    className={`p-3 rounded-lg text-xs shadow-sm flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2
+                                    ${id.label === "TIN"
+                                                            ? "bg-gradient-to-r from-white to-red-100 dark:from-gray-800 dark:to-red-900"
+                                                            : id.label === "HDMF Number"
+                                                                ? "bg-gradient-to-r from-white to-yellow-100 dark:from-gray-800 dark:to-yellow-900"
+                                                                : id.label === "SSS Number"
+                                                                    ? "bg-gradient-to-r from-white to-blue-100 dark:from-gray-800 dark:to-blue-900"
+                                                                    : "bg-gradient-to-r from-white to-green-100 dark:from-gray-800 dark:to-green-900"
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-1 w-full sm:w-auto">
+                                                        <img src={id.icon} alt={id.label} className="w-5 h-5" />
+                                                        <span className="font-semibold">{id.label}</span>
+                                                    </div>
+                                                    <span className="font-semibold">{mask(id.value, id.placeholder)}</span>
+                                                </div>
+                                            ));
+                                        })()}
                                     </div>
                                 </form>
-
                             </CardContent>
                         </Card>
                     </div>
 
+                    {/* 
                     <div className="flex justify-end p-4">
                         <Button
                             // onClick={handleSave}
@@ -573,7 +533,7 @@ export default function Profile() {
                             <CreditCard size={18} />
                             Create E-Card Form
                         </Button>
-                    </div>
+                    </div> */}
 
                 </>
             )

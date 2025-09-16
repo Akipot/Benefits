@@ -108,7 +108,7 @@ export default function StatusCard({
                                     <div className="flex-1 bg-gray-100 dark:bg-gray-800">
                                         <iframe
                                             src={buttonLink}
-                                            className="w-full h-[75vh] rounded-b-lg"
+                                            className="w-full h-[73vh] rounded-b-lg"
                                             title="Application PDF"
                                         />
                                     </div>
